@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -18,7 +20,7 @@ import com.cst438.domain.Course;
 import com.cst438.domain.CourseRepository;
 import com.cst438.domain.Enrollment;
 import com.cst438.domain.EnrollmentRepository;
-import com.cst438.domain.EnrollmentDTO;
+import com.cst438.domain.StudentDTO;
 import com.cst438.domain.ScheduleDTO;
 import com.cst438.domain.Student;
 import com.cst438.domain.StudentRepository;
@@ -42,13 +44,13 @@ public class StudentController {
 	 * get all students.
 	 */
 	@GetMapping("/student")
-	public EnrollmentDTO getStudent( @RequestParam("email") String email ) {
+	public StudentDTO getStudent( @RequestParam("email") String email ) {
 		
 		Student student = studentRepository.findByEmail(email);
 		if (student != null) {
 			System.out.println("/student called. "+student.getName()+" "+student.getStudent_id());
-			EnrollmentDTO enrollment = createEnrollment(student);
-			return enrollment;
+			StudentDTO newStudent = createStudent(student);
+			return newStudent;
 		} else {
 			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student doesn't exist.  ");
 		}
@@ -99,6 +101,15 @@ public class StudentController {
 		}
 	}
 	
+	@PutMapping("/student/{id}")
+	public void updateStudent(@RequestBody StudentDTO student_enrollment, @PathVariable ("id") int id) {
+		Student student = checkStudent(id);
+		student.setName(student_enrollment.name());
+		student.setEmail(student_enrollment.email());
+		student.setStatus(student_enrollment.status().toString());
+		student.setStatusCode(student_enrollment.status_code());
+		studentRepository.save(student);
+	}
 	/* 
 	 * helper method to transform course, enrollment, student entities into 
 	 * a an instances of ScheduleDTO to return to front end.
@@ -113,12 +124,23 @@ public class StudentController {
 //		return result;
 //	}
 //	
-	private EnrollmentDTO createEnrollment(Student s) {
+	
+	private Student checkStudent(int id) {
+		Student student = studentRepository.findById(id).orElse(null);
+		if ( student == null ) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student not found. "+id );
+		}
 		
-		EnrollmentDTO dto = new EnrollmentDTO(
+		return student;
+	}
+	
+	private StudentDTO createStudent(Student s) {
+		
+		StudentDTO dto = new StudentDTO(
 		   s.getStudent_id(),
 		   s.getName(),
 		   s.getEmail(),
+		   null,
 		   -1
 		   );
 		   

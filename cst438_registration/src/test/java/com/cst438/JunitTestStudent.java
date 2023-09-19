@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import com.cst438.domain.EnrollmentDTO;
 import com.cst438.domain.ScheduleDTO;
 import com.cst438.domain.Student;
+import com.cst438.domain.StudentDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /* 
@@ -48,8 +49,8 @@ public class JunitTestStudent {
 		assertEquals(200, response.getStatus());
 						
 		// verify that returned data contains the added course 
-		EnrollmentDTO student_enrollment = fromJsonString(response.getContentAsString(), EnrollmentDTO.class);
-		System.out.print(student_enrollment.id() + " " + student_enrollment.studentName());
+		StudentDTO student_enrollment = fromJsonString(response.getContentAsString(), StudentDTO.class);
+		System.out.print(student_enrollment.id() + " " + student_enrollment.name());
 		boolean found = false;		
 		if (student_enrollment.id() == 1) {
 			found = true;
@@ -83,8 +84,8 @@ public class JunitTestStudent {
 		assertEquals(200, response.getStatus());
 						
 		// verify that returned data contains the added course 
-		EnrollmentDTO student_enrollment = fromJsonString(response.getContentAsString(), EnrollmentDTO.class);
-		System.out.print(student_enrollment.id() + " " + student_enrollment.studentName());
+		StudentDTO student_enrollment = fromJsonString(response.getContentAsString(), StudentDTO.class);
+		System.out.print(student_enrollment.id() + " " + student_enrollment.name());
 		boolean found = false;		
 		if (student_enrollment.id() == 5) {
 			found = true;
@@ -92,6 +93,55 @@ public class JunitTestStudent {
 		assertEquals(true, found, "Added student not in updated repository.");
 		
 	}
+	
+	@Test
+	public void updateStudent() throws Exception {
+		MockHttpServletResponse response;
+		
+		response = mvc.perform(
+				MockMvcRequestBuilders
+			      .post("/students/add/Andres/andres@gmail.com")
+			      .contentType(MediaType.APPLICATION_JSON)
+			      .accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+		
+		response = mvc.perform(
+				MockMvcRequestBuilders
+			      .get("/student?email=andres@gmail.com")
+			      .accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+		// verify that 30157 is in student schedule
+		StudentDTO student_enrollment = fromJsonString(response.getContentAsString(), StudentDTO.class);
+		
+		boolean found = false;
+		if ( student_enrollment.id() == 6) found = true;
+		assertTrue(found);
+		
+		StudentDTO updatedStudent = new StudentDTO(student_enrollment.id(), student_enrollment.name(), "andy@gmail.com", student_enrollment.status(), student_enrollment.status_code());
+		
+		response = mvc
+				.perform(MockMvcRequestBuilders.put("/student/6").accept(MediaType.APPLICATION_JSON)
+						.content(asJsonString(updatedStudent)).contentType(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+		
+		assertEquals(200, response.getStatus());
+		
+		response = mvc.perform(
+				MockMvcRequestBuilders
+			      .get("/student?email=andy@gmail.com")
+			      .accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+		
+	    student_enrollment = fromJsonString(response.getContentAsString(), StudentDTO.class);
+
+		assertEquals(200, response.getStatus());
+		found = false;		
+		if (student_enrollment.email().equals("andy@gmail.com")) {
+			found = true;
+		}
+		assertEquals(true, found, "Updated student not in repository.");
+	}
+	
 	/*
 	 * drop course 30157 Fall 2020 from student test@csumb.edu
 	 */
@@ -113,7 +163,7 @@ public class JunitTestStudent {
 			      .accept(MediaType.APPLICATION_JSON))
 				.andReturn().getResponse();
 		// verify that 30157 is in student schedule
-		EnrollmentDTO student_enrollment = fromJsonString(response.getContentAsString(), EnrollmentDTO.class);
+		StudentDTO student_enrollment = fromJsonString(response.getContentAsString(), StudentDTO.class);
 		
 		boolean found = false;
 		if ( student_enrollment.id() == 4) found = true;
