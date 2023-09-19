@@ -1,5 +1,6 @@
 package com.cst438.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +56,29 @@ public class StudentController {
 			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student doesn't exist.  ");
 		}
 	}
+	
+	@GetMapping("/students")
+	public StudentDTO[] getAllStudents() {
+		
+		Iterable<Student> students = studentRepository.findAll();
+		if (students != null) {
+			List<StudentDTO> allStudents = new ArrayList<StudentDTO>();
+			for( Student s : students) {
+				StudentDTO temp = createStudent(s);
+				allStudents.add(temp);
+			}
+			
+			StudentDTO[] output = new StudentDTO[allStudents.size()];
+			for ( int i = 0; i < allStudents.size(); i++) {
+				output[i] = allStudents.get(i);
+			}
+			
+			return output;
+		} else {
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student doesn't exist.  ");
+		}
+	}
+	
 	/*
 	 * add a student
 	 */

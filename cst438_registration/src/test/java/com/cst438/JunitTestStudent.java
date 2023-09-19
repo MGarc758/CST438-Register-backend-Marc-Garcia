@@ -59,6 +59,23 @@ public class JunitTestStudent {
 	}
 	
 	@Test
+	public void TestGetAllStudents() throws Exception {
+		MockHttpServletResponse response;
+		
+		response = mvc.perform(
+				MockMvcRequestBuilders
+			      .get("/students")
+			      .accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+		
+		// verify that return status = OK (value 200) 
+		assertEquals(200, response.getStatus());
+		
+		StudentDTO[] students = fromJsonString(response.getContentAsString(), StudentDTO[].class);
+		assertEquals(5, students.length, "Not all students returned");
+	}
+	
+	@Test
 	public void TestAddStudent()  throws Exception {
 		
 		MockHttpServletResponse response;
