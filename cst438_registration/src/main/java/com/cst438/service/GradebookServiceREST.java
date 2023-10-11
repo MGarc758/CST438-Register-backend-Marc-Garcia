@@ -25,13 +25,15 @@ public class GradebookServiceREST implements GradebookService {
 
 	@Value("${gradebook.url}")
 	private static String gradebook_url;
-
+;
 	@Override
 	public void enrollStudent(String student_email, String student_name, int course_id) {
 		System.out.println("Start Message "+ student_email +" " + course_id); 
-	
-		// TODO use RestTemplate to send message to gradebook service
 		
+		
+		// TODO use RestTemplate to send message to gradebook service
+		//System.out.println("Gradebook: " + gradebook_url);
+		restTemplate.postForObject(gradebook_url, new EnrollmentDTO(0, student_email, student_name, course_id), EnrollmentDTO.class);
 	}
 	
 	@Autowired
@@ -45,5 +47,11 @@ public class GradebookServiceREST implements GradebookService {
 		System.out.println("Grades received "+grades.length);
 		
 		//TODO update grades in enrollment records with grades received from gradebook service
+		for(FinalGradeDTO grade : grades) {
+			Enrollment enrollment = enrollmentRepository.findByEmailAndCourseId(grade.studentEmail(), course_id);
+			enrollment.setCourseGrade(grade.grade());
+			enrollmentRepository.save(enrollment);
+		}
+		
 	}
 }
