@@ -45,7 +45,7 @@ import com.cst438.domain.EnrollmentRepository;
 @SpringBootTest
 public class EndToEndScheduleTest {
 
-	public static final String CHROME_DRIVER_FILE_LOCATION = "C:/chromedriver_win32/chromedriver.exe";
+	public static final String CHROME_DRIVER_FILE_LOCATION = "/Users/marcgarcia/Downloads/chromedriver-mac-x64/chromedriver";
 
 	public static final String URL = "http://localhost:3000";
 
@@ -63,7 +63,7 @@ public class EndToEndScheduleTest {
 	 */
 	
 	@Test
-	public void addCourseTest() throws Exception {
+	public void addStudentTest() throws Exception {
 
 	
 		// set the driver location and start driver
