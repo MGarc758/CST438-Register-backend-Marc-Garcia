@@ -52,11 +52,20 @@ public class StudentController {
 	 * get all students.
 	 */
 	@GetMapping("/student")
-	public StudentDTO getStudent(Principal principal) {
+	public StudentDTO getStudent(Principal principal, @RequestParam("email") String email) {
 		User user = userRepository.findByAlias(principal.getName());
-		if (user != null && user.getRole().equals("USER")) {
+		if (user != null) {
+			
+			Student student;
+			if (user.getRole().equals("USER")) {
+				student = studentRepository.findByEmail(user.getEmail());
+			} else if (user.getRole().equals("ADMIN")) {
+				student = studentRepository.findByEmail(email);
+			} else {
+				throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "User role invalid. ");
+			}
 		
-			Student student = studentRepository.findByEmail(user.getEmail());
+			
 			if (student != null) {
 				System.out.println("/student called. "+student.getName()+" "+student.getStudent_id());
 				StudentDTO newStudent = createStudent(student);
