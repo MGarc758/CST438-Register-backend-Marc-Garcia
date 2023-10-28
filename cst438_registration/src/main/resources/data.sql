@@ -3,6 +3,11 @@ INSERT INTO student VALUES
 (2,'david','dwisneski@csumb.edu',NULL,0),
 (3,'tom', 'trebold@csumb.edu', NULL, 0);
 
+insert into user_table (alias, email, password, role) values
+('test', 'test@csumb.edu', '$2a$10$NVM0n8ElaRgg7zWO1CxUdei7vWoPg91Lz2aYavh9.f9q0e4bRadue','USER'),
+('tom', 'trebold@csumb.edu', '$2a$10$8cjz47bjbR4Mn8GMg9IZx.vyjhLXR/SKKMSZ9.mP9vpMu0ssKi8GW' , 'ADMIN');
+
+
 INSERT INTO course VALUES 
 (2020,'Fall',30157,1,'BUS 203 - Financial Accounting','We 6:00PM - 7:20PM','506','112','cchou@csumb.edu','2020-08-24','2020-12-13'),
 (2020,'Fall',30163,1,'BUS 306 - Fundamentals of Marketing','Mo 11:00AM - 11:50AM','Library','1180','anariswari@csumb.edu','2020-08-24','2020-12-13'),

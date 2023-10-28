@@ -2,6 +2,7 @@ package com.cst438.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.security.Principal;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,8 @@ import com.cst438.domain.StudentDTO;
 import com.cst438.domain.ScheduleDTO;
 import com.cst438.domain.Student;
 import com.cst438.domain.StudentRepository;
+import com.cst438.domain.UserRepository;
+import com.cst438.domain.User;
 import com.cst438.service.GradebookService;
 @RestController
 @CrossOrigin 
@@ -40,42 +43,64 @@ public class StudentController {
 	EnrollmentRepository enrollmentRepository;
 	
 	@Autowired
+	UserRepository userRepository;
+	
+	@Autowired
 	GradebookService gradebookService;
+	
 	/*
 	 * get all students.
 	 */
 	@GetMapping("/student")
-	public StudentDTO getStudent( @RequestParam("email") String email ) {
+	public StudentDTO getStudent(Principal principal, @RequestParam("email") String email) {
+		User user = userRepository.findByAlias(principal.getName());
+		if (user != null) {
+			
+			Student student;
+			if (user.getRole().equals("USER")) {
+				student = studentRepository.findByEmail(user.getEmail());
+			} else if (user.getRole().equals("ADMIN")) {
+				student = studentRepository.findByEmail(email);
+			} else {
+				throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "User role invalid. ");
+			}
 		
-		Student student = studentRepository.findByEmail(email);
-		if (student != null) {
-			System.out.println("/student called. "+student.getName()+" "+student.getStudent_id());
-			StudentDTO newStudent = createStudent(student);
-			return newStudent;
+			
+			if (student != null) {
+				System.out.println("/student called. "+student.getName()+" "+student.getStudent_id());
+				StudentDTO newStudent = createStudent(student);
+				return newStudent;
+			} else {
+				throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student doesn't exist.  ");
+			}
 		} else {
-			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student doesn't exist.  ");
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "User not found. ");
 		}
 	}
 	
 	@GetMapping("/students")
-	public StudentDTO[] getAllStudents() {
-		
-		Iterable<Student> students = studentRepository.findAll();
-		if (students != null) {
-			List<StudentDTO> allStudents = new ArrayList<StudentDTO>();
-			for( Student s : students) {
-				StudentDTO temp = createStudent(s);
-				allStudents.add(temp);
+	public StudentDTO[] getAllStudents(Principal principal) {
+		User user = userRepository.findByAlias(principal.getName());
+		if (user != null && user.getRole().equals("ADMIN")) {		
+			Iterable<Student> students = studentRepository.findAll();
+			if (students != null) {
+				List<StudentDTO> allStudents = new ArrayList<StudentDTO>();
+				for( Student s : students) {
+					StudentDTO temp = createStudent(s);
+					allStudents.add(temp);
+				}
+				
+				StudentDTO[] output = new StudentDTO[allStudents.size()];
+				for ( int i = 0; i < allStudents.size(); i++) {
+					output[i] = allStudents.get(i);
+				}
+				
+				return output;
+			} else {
+				throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student doesn't exist.  ");
 			}
-			
-			StudentDTO[] output = new StudentDTO[allStudents.size()];
-			for ( int i = 0; i < allStudents.size(); i++) {
-				output[i] = allStudents.get(i);
-			}
-			
-			return output;
 		} else {
-			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student doesn't exist.  ");
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "User not found. ");
 		}
 	}
 	
@@ -84,25 +109,30 @@ public class StudentController {
 	 */
 	@PostMapping("/students/add/{name}/{email}")
 	@Transactional
-	public void addStudent( @PathVariable String name, @PathVariable String email ) { 
-		Student student = studentRepository.findByEmail(email);
-		// student.status
-		// = 0  ok to register.  != 0 registration is on hold.		
-		if (student == null) {
-			// TODO check that today's date is not past add deadline for the course.
-			Student newStudent = new Student();
-			newStudent.setName(name);
-			newStudent.setEmail(email);
-			newStudent.setStatusCode(0);
-			
-			System.out.println("/student/add/ called. "+newStudent.getName()+" "+newStudent.getStudent_id());
-
-			studentRepository.save(newStudent);
-			// return true if student successfully
-			System.out.print("Added student to student repository.");
+	public void addStudent(Principal principal, @PathVariable String name, @PathVariable String email ) { 
+		User user = userRepository.findByAlias(principal.getName());
+		if (user != null && user.getRole().equals("ADMIN")) {		
+			Student student = studentRepository.findByEmail(email);
+			// student.status
+			// = 0  ok to register.  != 0 registration is on hold.		
+			if (student == null) {
+				// TODO check that today's date is not past add deadline for the course.
+				Student newStudent = new Student();
+				newStudent.setName(name);
+				newStudent.setEmail(email);
+				newStudent.setStatusCode(0);
+				
+				System.out.println("/student/add/ called. "+newStudent.getName()+" "+newStudent.getStudent_id());
+	
+				studentRepository.save(newStudent);
+				// return true if student successfully
+				System.out.print("Added student to student repository.");
+			} else {
+				throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student already exists.  ");
+			}
 		} else {
-			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student already exists.  ");
-		}	
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "User not found. ");
+		}
 	}
 	
 	
@@ -111,28 +141,40 @@ public class StudentController {
 	 */
 	@DeleteMapping("/student/{student_id}")
 	@Transactional
-	public void deleteStudent(  @PathVariable int student_id ) {
+	public void deleteStudent(Principal principal, @PathVariable int student_id ) {
 		;   // student's email 
 		// TODO  check that today's date is not past deadline to drop course.
-		Student student = studentRepository.findById(student_id).orElse(null);
-		if (student!=null && student.getStudent_id() == student_id ) {
-			System.out.println("Delete student called. "+student.getName()+" "+student.getStudent_id());
-			// OK.  drop the course.
-			 studentRepository.delete(student);
+		User user = userRepository.findByAlias(principal.getName());
+		if (user != null && user.getRole().equals("ADMIN")) {		
+			Student student = studentRepository.findById(student_id).orElse(null);
+			if (student!=null && student.getStudent_id() == student_id ) {
+				System.out.println("Delete student called. "+student.getName()+" "+student.getStudent_id());
+				// OK.  drop the course.
+				 studentRepository.delete(student);
+			} else {
+				// something is not right with the enrollment.  
+				throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student_id invalid. "+student_id);
+			}
 		} else {
 			// something is not right with the enrollment.  
-			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student_id invalid. "+student_id);
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "User not found. "+student_id);
 		}
 	}
 	
 	@PutMapping("/student/{id}")
-	public void updateStudent(@RequestBody StudentDTO student_enrollment, @PathVariable ("id") int id) {
+	public void updateStudent(Principal principal, @RequestBody StudentDTO student_enrollment, @PathVariable ("id") int id) {
+		User user = userRepository.findByAlias(principal.getName());
+		if (user != null && user.getRole().equals("ADMIN")) {		
 		Student student = checkStudent(id);
 		student.setName(student_enrollment.name());
 		student.setEmail(student_enrollment.email());
 		student.setStatus(student_enrollment.status().toString());
 		student.setStatusCode(student_enrollment.status_code());
 		studentRepository.save(student);
+		} else {
+			// something is not right with the enrollment.  
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "User not found. "+id);
+		}
 	}
 	/* 
 	 * helper method to transform course, enrollment, student entities into 
